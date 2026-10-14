@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#EAF4FD">
+<title>创魔刷新表</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --bg:#EAF4FD;        /* 浅蓝底色 */
+    --panel:#FFFFFF;     /* 面板 */
+    --panel2:#DDEEFB;    /* 悬浮/表头 */
+    --line:#C3DDF3;      /* 分割线 */
+    --ink:#17324D;       /* 主文字 */
+    --dim:#5E7C99;       /* 次要文字 */
+    --gold:#2F8FE0;      /* 主操作（浅蓝系强调色） */
+    --gold-ink:#FFFFFF;
+    --jade:#1FA971;      /* 绿：1小时以上 */
+    --amber:#E39A00;     /* 黄：10~59分钟 */
+    --alert:#E5484D;     /* 红：10分钟内 / 该刷新了 */
+    --mono:"Cascadia Mono","Consolas","SF Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(620px 320px at 12% -6%, rgba(47,143,224,.14), transparent 65%),
+      radial-gradient(720px 420px at 92% -4%, rgba(120,190,245,.18), transparent 60%),
+      var(--bg);
+    color:var(--ink);
+    font:15px/1.65 system-ui,-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;
+    min-height:100vh;
+  }
+  .wrap{max-width:780px;margin:0 auto;padding:24px 16px 48px}
+
+  /* 顶部 */
+  .head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+  h1{font-size:22px;margin:0;letter-spacing:.01em}
+  .sub{margin:4px 0 0;color:var(--dim);font-size:13px}
+  .ctl{display:flex;gap:8px;flex-wrap:wrap}
+
+  /* 按钮与控件 */
+  .btn{font:inherit;font-size:13px;border-radius:8px;padding:7px 12px;border:1px solid var(--line);
+       background:transparent;color:var(--ink);cursor:pointer}
+  .btn:hover{background:var(--panel2)}
+  .btn.primary{background:var(--gold);border-color:var(--gold);color:var(--gold-ink);font-weight:600}
+  .btn.primary:hover{filter:brightness(1.06);background:var(--gold)}
+  .btn.rec{border-color:rgba(47,143,224,.55);color:var(--gold)}
+  .btn.rec:hover{background:rgba(47,143,224,.10)}
+  .btn.del{border:0;color:var(--dim);padding:5px 8px;font-size:17px;line-height:1}
+  .btn.del:hover{color:var(--alert);background:transparent}
+  .btn.lp{font-size:11px;padding:2px 10px;border-radius:999px;flex:0 0 auto}
+  .btn.lp.on{background:rgba(31,169,113,.12);border-color:rgba(31,169,113,.7);color:var(--jade);font-weight:600}
+  :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+  /* 添加按钮 */
+  .addbar{margin-top:18px;display:flex}
+  .addbar .btn{flex:1;padding:12px;font-size:15px;font-weight:600}
+  .err{color:var(--alert);font-size:14px;margin:10px 0 0}
+  .cat{border:1px solid var(--line);color:var(--dim);border-radius:999px;
+       padding:1px 9px;font-size:11px;flex:0 0 auto}
+
+  /* 分类标签栏 */
+  .tabs{margin-top:14px;display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;
+        -webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{flex:0 0 auto;font:inherit;font-size:14px;padding:8px 15px;border-radius:999px;
+       border:1px solid var(--line);background:transparent;color:var(--dim);cursor:pointer;white-space:nowrap}
+  .tab:hover{background:var(--panel2);color:var(--ink)}
+  .tab.on{background:rgba(47,143,224,.12);border-color:rgba(47,143,224,.7);color:var(--gold);font-weight:600}
+  .tab.plus{color:var(--dim);font-weight:600}
+  .tab.plus:hover{color:var(--gold)}
+  .catadd{margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;
+          padding:4px 14px 16px}
+  .catadd .fld-label{margin:14px 0 8px}
+  .catadd .sheet-btns{margin-top:16px}
+
+  /* 添加新物质（整页表单，模仿手机APP） */
+  .sheet{position:fixed;inset:0;z-index:50;background:#EAF4FD;overflow-y:auto;
+         padding:20px 16px 44px;overscroll-behavior:contain}
+  .sheet-inner{max-width:560px;margin:0 auto}
+  .sheet h2{font-size:25px;margin:2px 0 6px;font-weight:600;letter-spacing:.01em}
+  .fld-label{display:block;margin:20px 0 8px;font-size:19px;font-weight:600}
+  .fld{width:100%;background:#FFFFFF;border:1px solid #9CC3E6;border-radius:6px;color:var(--ink);
+       font:inherit;font-size:19px;padding:11px 12px;min-height:52px}
+  .fld::placeholder{color:#8FA9C2}
+  select.fld{background:#FFFFFF;color:#17324D;font-size:19px;appearance:auto}
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  input[type=number]{-moz-appearance:textfield;appearance:textfield}
+  .fld-row{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap}
+  .fld.num{width:128px;flex:0 0 auto;text-align:center}
+  .mini{color:var(--dim);font-size:17px;align-self:center;flex:0 0 auto}
+  .radios{display:flex;gap:8px;flex-wrap:wrap}
+  .radios label{display:flex;align-items:center;gap:7px;border:1px solid #9CC3E6;border-radius:6px;
+                padding:0 14px;font-size:18px;cursor:pointer;min-height:52px;background:#FFFFFF}
+  .radios label:has(input:checked){border-color:#2F8FE0;background:#DDEEFB}
+  .radios input{accent-color:#2F8FE0;width:19px;height:19px;margin:0}
+  .check{display:flex;align-items:center;gap:9px;margin-top:12px;font-size:18px;cursor:pointer;
+         user-select:none}
+  .check input{accent-color:#2F8FE0;width:20px;height:20px;margin:0}
+  .check.box{border:1px solid #9CC3E6;border-radius:6px;padding:0 14px;min-height:52px;
+             margin-top:0;background:#FFFFFF}
+  .sheet-btns{display:flex;gap:10px;margin-top:26px}
+  .btn-save,.btn-cancel{flex:1;font:inherit;font-size:19px;font-weight:600;min-height:56px;
+                        border-radius:5px;cursor:pointer;border:0}
+  .btn-save{background:#2F8FE0;color:#fff}
+  .btn-save:hover{filter:brightness(1.1)}
+  .btn-cancel{background:#FFFFFF;color:var(--ink);border:1px solid #9CC3E6}
+  .btn-cancel:hover{background:#DDEEFB}
+
+  /* 到点横幅 */
+  .banner{margin-top:16px;border:1px solid rgba(229,72,77,.5);background:rgba(229,72,77,.10);
+          color:#8A1F23;border-radius:10px;padding:10px 14px;font-size:14px}
+  .banner b{color:#C22A2F}
+
+  /* 刷新表（树） */
+  .board{margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  #list{list-style:none;margin:0;padding:0}
+  .res{border-top:1px solid var(--line)}
+  #list > li:first-child{border-top:0}
+
+  .trunk{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:11px 14px;cursor:pointer;user-select:none;
+         transition:background .15s}
+  .trunk:hover{background:var(--panel2)}
+  .caret{color:var(--dim);font-size:11px;width:12px;flex:0 0 auto;transition:transform .15s;text-align:center}
+  .res.open .caret{transform:rotate(90deg)}
+  .res-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto;min-width:0}
+  .per{color:var(--dim);font-size:12px;flex:0 0 auto;cursor:help}
+  .summary{margin-left:auto;font-size:12px;color:var(--dim);flex:0 1 auto;
+           font-variant-numeric:tabular-nums;text-align:right}
+  .summary.due,.summary.t-red{color:var(--alert);font-weight:600}
+  .summary.t-yellow{color:var(--amber);font-weight:600}
+  .summary.t-green{color:var(--jade);font-weight:600}
+
+  .branches{margin-left:22px;border-left:1px solid var(--line)}
+  .isle-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;position:relative;
+            padding:8px 14px 8px 12px;border-top:1px solid rgba(195,221,243,.8)}
+  .isle-name{color:var(--dim);font-size:12px;min-width:36px;flex:0 0 auto}
+  .isle-row .clock{font-family:var(--mono);font-size:20px;text-align:right;min-width:92px;flex:0 0 auto;
+                   font-variant-numeric:tabular-nums;letter-spacing:.02em;color:var(--dim)}
+  .isle-row .next{color:var(--dim);font-size:12px;flex:0 0 auto;font-variant-numeric:tabular-nums}
+  .isle-row .rec-at{color:#8FA9C2;font-size:12px;flex:0 0 auto}
+  .isle-row .bar{flex:1 1 100%;height:3px;background:#DCEBF8;border-radius:2px;margin:0;overflow:hidden}
+  .isle-row .bar i{display:block;height:100%;width:0;background:var(--jade);border-radius:2px;
+                   transition:width .5s linear}
+  .isle-row .clear{visibility:hidden}
+  .isle-row.has-rec .clear{visibility:visible}
+  .isle-row.idle .bar{visibility:hidden}
+
+  /* 剩余时间配色：≥1小时 绿；10~59分钟 黄；<10分钟 红 */
+  .isle-row.run{box-shadow:inset 3px 0 0 var(--jade)}
+  .isle-row.run .clock{color:var(--jade);font-weight:600}
+  .isle-row.run .bar i{background:var(--jade)}
+  .isle-row.run.t-yellow{box-shadow:inset 3px 0 0 var(--amber)}
+  .isle-row.run.t-yellow .clock{color:var(--amber)}
+  .isle-row.run.t-yellow .bar i{background:var(--amber)}
+  .isle-row.run.t-red{box-shadow:inset 3px 0 0 var(--alert)}
+  .isle-row.run.t-red .clock{color:var(--alert)}
+  .isle-row.run.t-red .bar i{background:var(--alert)}
+  .isle-row.due{box-shadow:inset 3px 0 0 var(--alert);
+                background:linear-gradient(90deg,rgba(229,72,77,.10),transparent 70%)}
+  .isle-row.due .clock{color:var(--alert);font-family:inherit;font-size:15px;font-weight:700;
+                       letter-spacing:.06em;animation:flash 1.6s ease-in-out infinite}
+  .isle-row.due .bar i{width:100%;background:var(--alert)}
+  @keyframes flash{50%{opacity:.3}}
+  @media (prefers-reduced-motion: reduce){.isle-row.due .clock{animation:none}}
+
+  .empty{margin:0;padding:24px 16px;color:var(--dim);font-size:13px;text-align:center}
+  .tips{margin:14px 2px 0;color:#6F8CA8;font-size:12px;line-height:1.8}
+
+  @media (max-width:620px){
+    h1{font-size:20px}
+    .summary{margin-left:0;flex-basis:100%;text-align:left}
+    .trunk{position:relative;padding-right:38px}
+    .trunk .del{position:absolute;right:10px;top:12px}
+    .isle-row .clock{margin-left:auto}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="head">
+    <div>
+      <h1>创魔刷新表</h1>
+      <p class="sub">每个物质一棵树，1岛~10岛 各记各的。</p>
+    </div>
+    <div class="ctl">
+      <button id="soundBtn" class="btn" aria-pressed="true">提示音：开</button>
+      <button id="notifyBtn" class="btn">开启系统通知</button>
+    </div>
+  </header>
+
+  <section class="addbar">
+    <button id="addBtn" class="btn primary">＋ 添加物质</button>
+  </section>
+
+  <nav id="tabs" class="tabs" aria-label="分类标签"></nav>
+
+  <div id="catAdd" class="catadd" hidden>
+    <label class="fld-label" for="catName">新分类名字</label>
+    <input id="catName" class="fld" maxlength="10" placeholder="比如：矿石">
+    <p id="catErr" class="err" hidden></p>
+    <div class="sheet-btns">
+      <button id="catOk" class="btn-save" type="button">添加</button>
+      <button id="catCancel" class="btn-cancel" type="button">取消</button>
+    </div>
+  </div>
+
+  <div id="banner" class="banner" role="status" hidden></div>
+
+  <section class="board">
+    <ul id="list"></ul>
+    <p id="empty" class="empty">还没有物质。点上面「＋ 添加物质」；<br>加好后点它的名字展开，在捡到它的那个岛点「记录刷新」。</p>
+  </section>
+
+  <footer class="tips">每次点「记录刷新」，都会在刷新范围里随机抽一个具体时刻来倒计时，每个岛、每次都不一样；关掉页面再打开，抽到的时刻不变、接着算。<br>开着「循环」的岛：到点后自动记一次刷新、重新随机抽下一轮，你不上线时间轴也不会断。<br>顶上那排按钮是分类筛选：「全部」里能看到所有物质；点「＋ 新分类」能自己加分类，添加物质时分类选它就行。列表按剩余时间自动排：该刷新了的在最上面，没记录的沉底部。</footer>
+
+</div>
+
+<!-- 添加新物质：整页表单 -->
+<section id="sheet" class="sheet" hidden aria-label="添加新物质">
+  <div class="sheet-inner">
+    <h2>添加新物质</h2>
+
+    <label class="fld-label" for="sName">物质名称</label>
+    <input id="sName" class="fld" maxlength="20" placeholder="比如：火龙">
+
+    <span class="fld-label">刷新时间</span>
+    <div class="fld-row" id="singleRow">
+      <input id="sTime" class="fld num" type="number" inputmode="decimal" min="0" value="30">
+      <div class="radios">
+        <label><input type="radio" name="unit" value="min" checked><span>分钟</span></label>
+        <label><input type="radio" name="unit" value="hour"><span>小时</span></label>
+        <label><input type="radio" name="unit" value="day"><span>天</span></label>
+      </div>
+    </div>
+
+    <div id="rangeBox" hidden>
+      <div class="fld-row">
+        <span class="mini">最快</span>
+        <input id="sEarly" class="fld num" type="number" inputmode="decimal" min="0" value="1">
+        <div class="radios">
+          <label><input type="radio" name="eunit" value="min"><span>分钟</span></label>
+          <label><input type="radio" name="eunit" value="hour" checked><span>小时</span></label>
+          <label><input type="radio" name="eunit" value="day"><span>天</span></label>
+        </div>
+      </div>
+      <div class="fld-row" style="margin-top:10px">
+        <span class="mini">最慢</span>
+        <input id="sLate" class="fld num" type="number" inputmode="decimal" min="0" value="2">
+        <div class="radios">
+          <label><input type="radio" name="lunit" value="min"><span>分钟</span></label>
+          <label><input type="radio" name="lunit" value="hour" checked><span>小时</span></label>
+          <label><input type="radio" name="lunit" value="day"><span>天</span></label>
+        </div>
+      </div>
+    </div>
+
+    <label class="check"><input type="checkbox" id="sRange"><span>时间范围（如 1~2小时）</span></label>
+
+    <div id="flucWrap">
+      <span class="fld-label">时间波动</span>
+      <div class="fld-row">
+        <label class="check box"><input type="checkbox" id="sFluc" checked><span>±</span></label>
+        <input id="sFlucVal" class="fld num" type="number" inputmode="decimal" min="0" value="10">
+        <div class="radios">
+          <label><input type="radio" name="funit" value="pct" checked><span>%</span></label>
+          <label><input type="radio" name="funit" value="min"><span>分钟</span></label>
+          <label><input type="radio" name="funit" value="hour"><span>小时</span></label>
+        </div>
+      </div>
+    </div>
+
+    <span class="fld-label">分类</span>
+    <select id="sCat" class="fld">
+      <option>自定义</option>
+      <option>树</option>
+      <option>矿石</option>
+      <option>鱼</option>
+      <option>怪物</option>
+      <option>其他</option>
+    </select>
+
+    <label class="check box" style="margin-top:20px"><input type="checkbox" id="sLoop"><span>自动循环（新物质默认开启，每个岛可以单独关）</span></label>
+
+    <p id="addErr" class="err" hidden></p>
+
+    <div class="sheet-btns">
+      <button id="saveBtn" class="btn-save">保存</button>
+      <button id="cancelBtn" class="btn-cancel">取消</button>
+    </div>
+  </div>
+</section>
+
+<script>
+(function(){
+"use strict";
+var KEY2 = "czmf.timer.v2", KEY1 = "czmf.timer.v1";
+var ISLES = 10;
+var DEFAULT_CATS = ["植物", "宝箱", "世界boos", "砖头"];
+var $ = function(s){ return document.querySelector(s); };
+var listEl = $("#list"), emptyEl = $("#empty"), bannerEl = $("#banner"),
+    soundBtn = $("#soundBtn"), notifyBtn = $("#notifyBtn"),
+    sheetEl = $("#sheet"), addBtn = $("#addBtn"), addErr = $("#addErr"),
+    sName = $("#sName"), sTime = $("#sTime"), sRange = $("#sRange"), rangeBox = $("#rangeBox"),
+    singleRow = $("#singleRow"),
+    sEarly = $("#sEarly"), sLate = $("#sLate"), sFluc = $("#sFluc"),
+    sFlucVal = $("#sFlucVal"), sCat = $("#sCat"), sLoop = $("#sLoop"),
+    tabsEl = $("#tabs"), catAdd = $("#catAdd"),
+    catName = $("#catName"), catErr = $("#catErr");
+
+/* 物资 = {id, name, cat, kind, base, pct, amp, early, late, fluc, loop, loops, open, starts}
+   fluc：null 或 {mode:"pct"|"abs", val}，范围模式（kind:"range"）叠加的波动
+   loop：新物质默认是否循环；loops[i]：这个岛自己的循环开关（null = 跟随默认）
+   starts[i]：手动「记录刷新」的起点时刻（当前这一轮的起点）
+   每轮"具体多久刷"由起点随机抽出来（roundDur）；循环开着时一轮一轮往后推 */
+var resources = [];
+var customCats = [];       /* 自己加的分类标签 */
+var activeTab = "全部";    /* 当前选中的分类 */
+var soundOn = true;
+var rowState = {};         // "rid:岛序号" -> "idle" | "run" | "due"
+var loopCache = {};        // "rid:岛" -> {anchor, start, round} 当前轮起点缓存
+var lastRound = {};        // "rid:岛" -> 上次算到的轮号（用来发现"刚自动记了一轮"）
+var recentLoopAt = {};     // "rid:岛" -> 最近一次自动记的时间（横幅多显示 2 分钟）
+var booted = false;
+var lastBeepAt = 0;
+var titleTimer = null, titleTick = 0;
+var bannerText = "";
+var audioCtx = null;
+
+/* ---------- 存储 ---------- */
+function load(){
+  try{
+    var raw = localStorage.getItem(KEY2);
+    if(raw){
+      var data = JSON.parse(raw);
+      if(Array.isArray(data.resources)){
+        resources = data.resources.filter(function(r){ return r && r.id && r.name && Array.isArray(r.starts); });
+      }
+      if(Array.isArray(data.cats)){
+        customCats = data.cats.filter(function(c){
+          return typeof c === "string" && c.trim() && c !== "全部" && DEFAULT_CATS.indexOf(c) < 0;
+        }).filter(function(c, i, a){ return a.indexOf(c) === i; });
+      }
+      if(typeof data.tab === "string") activeTab = data.tab;
+      soundOn = data.sound !== false;
+    }else{
+      /* 旧版（v1）数据迁移：每条旧计时变成一棵树，规律保留，岛记录从零开始 */
+      var old = localStorage.getItem(KEY1);
+      if(old){
+        var d1 = JSON.parse(old);
+        if(Array.isArray(d1.items)){
+          resources = d1.items.filter(function(x){ return x && x.id && x.name; }).map(function(x){
+            return {
+              id: x.id, name: x.name,
+              kind: x.kind || "fixed", base: x.base || x.mins || 60,
+              pct: x.pct || 10, early: x.early || 60, late: x.late || 60,
+              loop: false, open: false, starts: new Array(ISLES).fill(null)
+            };
+          });
+        }
+        if(d1.sound === false) soundOn = false;
+      }
+    }
+    resources.forEach(function(r){
+      while(r.starts.length < ISLES) r.starts.push(null);
+      r.starts.length = ISLES;
+      if(!Array.isArray(r.loops)) r.loops = [];
+      while(r.loops.length < ISLES) r.loops.push(null);
+      r.loops.length = ISLES;
+      r.loop = (r.loop === true);
+    });
+  }catch(e){}
+  if(tabsList().indexOf(activeTab) < 0) activeTab = "全部";
+}
+function save(){
+  try{ localStorage.setItem(KEY2, JSON.stringify({sound: soundOn, resources: resources, cats: customCats, tab: activeTab})); }catch(e){}
+}
+
+/* ---------- 工具函数 ---------- */
+function p2(n){ return n < 10 ? "0" + n : "" + n; }
+function fmtRemain(ms){
+  var s = Math.max(0, Math.ceil(ms / 1000));
+  var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
+  return h > 0 ? h + ":" + p2(m) + ":" + p2(ss) : m + ":" + p2(ss);
+}
+function fmtOver(ms){
+  var m = Math.floor(ms / 60000);
+  if(m < 1) return "不到 1 分钟";
+  if(m < 60) return m + " 分钟";
+  var h = Math.floor(m / 60), mm = m % 60;
+  return mm ? h + " 小时 " + mm + " 分" : h + " 小时";
+}
+var WD = ["周日","周一","周二","周三","周四","周五","周六"];
+function dayDiff(ts){
+  var d = new Date(ts), now = new Date();
+  var day0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  var that = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  return Math.round((that - day0) / 86400000);
+}
+function fmtWhen(ts){
+  var d = new Date(ts);
+  var diff = dayDiff(ts);
+  var hm = p2(d.getHours()) + ":" + p2(d.getMinutes());
+  if(diff === 0) return "今天 " + hm;
+  if(diff === 1) return "明天 " + hm;
+  if(diff > 1 && diff < 7) return WD[d.getDay()] + " " + hm;
+  return (d.getMonth() + 1) + "月" + d.getDate() + "日 " + hm;
+}
+function fmtShortClock(ts){
+  var d = new Date(ts);
+  var diff = dayDiff(ts);
+  var hm = p2(d.getHours()) + ":" + p2(d.getMinutes());
+  if(diff === 0) return hm;
+  if(diff === -1) return "昨天 " + hm;
+  return (d.getMonth() + 1) + "/" + d.getDate() + " " + hm;
+}
+function fmtMins(mins){
+  var h = Math.floor(mins / 60), m = mins % 60;
+  if(h && m) return h + " 小时 " + m + " 分";
+  if(h) return h + " 小时";
+  return m + " 分钟";
+}
+function bounds(res){
+  if(res.kind === "range"){
+    var e = res.early, l = res.late, f = res.fluc;
+    if(f && f.val > 0){
+      if(f.mode === "pct"){
+        var p = f.val / 100;
+        e = Math.round(e * (1 - p));
+        l = Math.round(l * (1 + p));
+      }else{
+        e = e - f.val;
+        l = l + f.val;
+      }
+    }
+    return [Math.max(1, e), Math.max(1, l)];
+  }
+  if(res.kind === "pct"){
+    var p = res.pct / 100;
+    return [Math.max(1, Math.round(res.base * (1 - p))), Math.max(1, Math.round(res.base * (1 + p)))];
+  }
+  if(res.kind === "abs"){
+    var a = res.amp || 0;
+    return [Math.max(1, res.base - a), res.base + a];
+  }
+  return [res.base, res.base];
+}
+function labelOf(res){
+  var b = bounds(res);
+  if(res.kind === "range"){
+    var f = res.fluc;
+    if(f && f.val > 0){
+      return "每 " + fmtMins(res.early) + " ~ " + fmtMins(res.late) + " " +
+             (f.mode === "pct" ? "±" + f.val + "%" : "±" + fmtMins(f.val)) + " 随机刷";
+    }
+    return "每 " + fmtMins(b[0]) + " ~ " + fmtMins(b[1]) + " 之间随机刷";
+  }
+  if(res.kind === "pct") return "每 " + fmtMins(res.base) + " ±" + res.pct + "%";
+  if(res.kind === "abs") return "每 " + fmtMins(res.base) + " ±" + fmtMins(res.amp);
+  return "每 " + fmtMins(res.base);
+}
+function hash01(str){
+  var h = 2166136261;
+  for(var i = 0; i < str.length; i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return ((h >>> 0) % 100000) / 100000;
+}
+/* 这一轮"具体多久刷"（分钟）：在「最快 ~ 最慢」范围里随机抽一个值。
+   同一轮的起点时刻永远抽到同一个值，所以页面关了再开、隔几天再算都不会变；
+   每次「记录刷新」起点不同，抽到的时间就不同 —— 这就是每次看到的随机 */
+function roundDur(res, key, startTs){
+  var b = bounds(res);
+  if(b[1] <= b[0]) return b[0];
+  return b[0] + Math.round((b[1] - b[0]) * hash01(key + ":" + startTs));
+}
+function effLoop(res, i){
+  var v = res.loops ? res.loops[i] : null;
+  return (v === true || v === false) ? v : res.loop === true;
+}
+/* 循环开着时：从记录的起点出发，一轮一轮推到"现在"这一轮 */
+function effectiveStart(res, i, now){
+  var s0 = res.starts[i];
+  if(!s0) return null;
+  var key = res.id + ":" + i;
+  if(!effLoop(res, i)) return {start: s0, round: 0, dur: roundDur(res, key, s0)};
+  var c = loopCache[key];
+  if(!c || c.anchor !== s0) c = loopCache[key] = {anchor: s0, start: s0, round: 0};
+  var guard = 0;
+  while(guard++ < 1000000){
+    var next = c.start + roundDur(res, key, c.start) * 60000;
+    if(next > now) break;
+    c.start = next; c.round++;
+  }
+  return {start: c.start, round: c.round, dur: roundDur(res, key, c.start)};
+}
+/* 抽中的刷出时刻之前 = 计时中；到点之后 = 该刷新了 */
+function isleStateAt(eff, now){
+  return now < eff.start + eff.dur * 60000 ? "run" : "due";
+}
+/* 剩余时间档位：>=60分钟 绿；10~59分钟 黄；<10分钟 红 */
+function toneOf(remMs){
+  if(remMs >= 3600000) return "green";
+  if(remMs >= 600000) return "yellow";
+  return "red";
+}
+function esc(s){
+  return s.replace(/[&<>"]/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];
+  });
+}
+
+/* ---------- 提示音 ---------- */
+function unlockAudio(){
+  if(!soundOn) return;
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(audioCtx.state === "suspended") audioCtx.resume();
+  }catch(e){}
+}
+function beep(){
+  if(!soundOn) return;
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(audioCtx.state === "suspended") audioCtx.resume();
+    var t0 = audioCtx.currentTime + 0.02;
+    [[0, 880], [0.18, 880], [0.36, 1174.66]].forEach(function(n){
+      var dt = n[0], f = n[1];
+      var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = "sine"; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t0 + dt);
+      g.gain.exponentialRampToValueAtTime(0.3, t0 + dt + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dt + 0.22);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t0 + dt); o.stop(t0 + dt + 0.25);
+    });
+  }catch(e){}
+}
+
+/* ---------- 系统通知 ---------- */
+function notify(title, body){
+  try{
+    if(("Notification" in window) && Notification.permission === "granted"){
+      new Notification(title, {body: body});
+    }
+  }catch(e){}
+}
+function updateNotifyBtn(){
+  if(!("Notification" in window)){
+    notifyBtn.textContent = "系统通知不可用";
+    notifyBtn.disabled = true;
+    return;
+  }
+  var p = Notification.permission;
+  notifyBtn.textContent = p === "granted" ? "系统通知：已开"
+                        : p === "denied"  ? "系统通知：被拒绝"
+                        : "开启系统通知";
+  notifyBtn.title = p === "denied" ? "浏览器拒绝了通知权限；本地文件打开时较常见" : "";
+}
+notifyBtn.addEventListener("click", function(){
+  if(!("Notification" in window)) return;
+  try{
+    Notification.requestPermission().then(function(){ updateNotifyBtn(); });
+  }catch(e){ updateNotifyBtn(); }
+});
+
+/* ---------- 音效开关 ---------- */
+function updateSoundBtn(){
+  soundBtn.textContent = "提示音：" + (soundOn ? "开" : "关");
+  soundBtn.setAttribute("aria-pressed", String(soundOn));
+}
+soundBtn.addEventListener("click", function(){
+  soundOn = !soundOn;
+  updateSoundBtn(); save();
+  if(soundOn) unlockAudio();
+});
+
+/* ---------- 添加表单开合 ---------- */
+var UNIT_MINS = {min: 1, hour: 60, day: 1440};
+function unitOf(name){
+  var el = sheetEl.querySelector('input[name="' + name + '"]:checked');
+  return el ? el.value : "min";
+}
+function setUnit(name, val){
+  sheetEl.querySelectorAll('input[name="' + name + '"]').forEach(function(r){
+    r.checked = (r.value === val);
+  });
+}
+function syncForm(){
+  var isRange = sRange.checked;
+  singleRow.hidden = isRange;
+  rangeBox.hidden = !isRange;
+}
+sRange.addEventListener("change", syncForm);
+
+function openSheet(){
+  fillCatSelect();
+  resetForm();
+  sheetEl.hidden = false;
+  document.body.style.overflow = "hidden";
+  sName.focus();
+}
+function closeSheet(){
+  sheetEl.hidden = true;
+  document.body.style.overflow = "";
+  addBtn.focus();
+}
+function resetForm(){
+  sName.value = "";
+  sTime.value = 30; setUnit("unit", "min");
+  sRange.checked = false;
+  sEarly.value = 1; setUnit("eunit", "hour");
+  sLate.value = 2; setUnit("lunit", "hour");
+  sFluc.checked = true; sFlucVal.value = 10; setUnit("funit", "pct");
+  sCat.value = "自定义";
+  sLoop.checked = false;
+  hideErr();
+  syncForm();
+}
+
+/* ---------- 分类标签栏 ---------- */
+function tabsList(){
+  return ["全部"].concat(DEFAULT_CATS).concat(customCats);
+}
+function renderTabs(){
+  tabsEl.innerHTML = "";
+  tabsList().forEach(function(name){
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "tab" + (name === activeTab ? " on" : "");
+    b.textContent = name;
+    b.setAttribute("aria-pressed", String(name === activeTab));
+    b.addEventListener("click", function(){ switchTab(name); });
+    tabsEl.appendChild(b);
+  });
+  var plus = document.createElement("button");
+  plus.type = "button";
+  plus.className = "tab plus";
+  plus.textContent = "＋ 新分类";
+  plus.title = "自己加一个新分类";
+  plus.addEventListener("click", openCatAdd);
+  tabsEl.appendChild(plus);
+}
+function switchTab(name){
+  if(activeTab === name) return;
+  activeTab = name;
+  closeCatAdd();
+  save();
+  renderTabs();
+  render();
+}
+function openCatAdd(){
+  catAdd.hidden = false;
+  catName.value = "";
+  catErr.hidden = true;
+  catName.focus();
+}
+function closeCatAdd(){
+  catAdd.hidden = true;
+}
+function addCat(){
+  var name = catName.value.trim();
+  if(!name){ catErr.textContent = "先给分类起个名字"; catErr.hidden = false; catName.focus(); return; }
+  if(name === "不分类" || tabsList().indexOf(name) >= 0){
+    catErr.textContent = "已经有「" + name + "」这个分类了"; catErr.hidden = false; catName.focus(); return;
+  }
+  customCats.push(name);
+  save();
+  switchTab(name);
+  closeCatAdd();
+}
+document.getElementById("catOk").addEventListener("click", addCat);
+document.getElementById("catCancel").addEventListener("click", closeCatAdd);
+catName.addEventListener("keydown", function(e){
+  if(e.key === "Enter"){ e.preventDefault(); addCat(); }
+  if(e.key === "Escape") closeCatAdd();
+});
+function fillCatSelect(){
+  sCat.innerHTML = "";
+  var none = document.createElement("option");
+  none.value = "自定义";
+  none.textContent = "不分类";
+  sCat.appendChild(none);
+  DEFAULT_CATS.concat(customCats).forEach(function(name){
+    var o = document.createElement("option");
+    o.value = name;
+    o.textContent = name;
+    sCat.appendChild(o);
+  });
+}
+
+/* ---------- 渲染 ---------- */
+/* 离"最近的刷出时刻"还有多久：该刷新了的为负数（越负越急）；没记录的为 Infinity */
+function nearestKey(res, now){
+  var best = Infinity;
+  for(var i = 0; i < ISLES; i++){
+    var eff = effectiveStart(res, i, now);
+    if(!eff) continue;
+    var k = eff.start + eff.dur * 60000 - now;
+    if(k < best) best = k;
+  }
+  return best;
+}
+/* 当前标签能看到的物质，按紧急程度排：该刷新了 → 剩余短 → 剩余长 → 没记录 */
+function visibleSorted(){
+  var now = Date.now();
+  var arr = resources.filter(function(r){
+    return activeTab === "全部" || r.cat === activeTab;
+  });
+  arr.sort(function(a, b){
+    var ka = nearestKey(a, now), kb = nearestKey(b, now);
+    return ka === kb ? 0 : (ka < kb ? -1 : 1);
+  });
+  return arr;
+}
+/* 倒计时走着的时候保持排序：顺序变了只挪动现有行，不重建（展开状态、滚动位置都不丢） */
+function syncOrder(){
+  var vis = visibleSorted();
+  var lis = listEl.children;
+  if(lis.length !== vis.length) return;
+  var same = true, i;
+  for(i = 0; i < lis.length; i++){
+    if(lis[i].dataset.rid !== vis[i].id){ same = false; break; }
+  }
+  if(same) return;
+  var map = {};
+  for(i = 0; i < lis.length; i++) map[lis[i].dataset.rid] = lis[i];
+  for(i = 0; i < vis.length; i++){
+    if(map[vis[i].id]) listEl.appendChild(map[vis[i].id]);
+  }
+}
+function buildIsle(res, i){
+  var row = document.createElement("div");
+  row.className = "isle-row";
+  row.dataset.rid = res.id;
+  row.dataset.isle = i;
+  var looping = effLoop(res, i);
+  row.innerHTML =
+    '<span class="isle-name">' + (i + 1) + '岛</span>' +
+    '<span class="clock">--:--</span>' +
+    '<span class="next"></span>' +
+    '<span class="rec-at"></span>' +
+    '<button class="btn rec" title="点击表示：刚刚在这个岛刷了，从现在开始倒计时">记录刷新</button>' +
+    '<button class="btn lp' + (looping ? ' on' : '') + '" aria-pressed="' + (looping ? 'true' : 'false') + '">' +
+      (looping ? '循环中' : '循环') + '</button>' +
+    '<button class="btn del clear" aria-label="清空该岛计时" title="清空这个岛的计时">×</button>' +
+    '<div class="bar"><i></i></div>';
+  var lpBtn = row.querySelector(".lp");
+  lpBtn.title = looping
+    ? (res.starts[i] ? "循环开着：到点自动记一次、接着下一轮；点一下关掉"
+                     : "循环开着：先点「记录刷新」打头，之后它自己一直转")
+    : "开启自动循环：这个岛倒计时到点后自动记一次、马上开始下一轮";
+  lpBtn.addEventListener("click", function(){ toggleIsleLoop(res.id, i); });
+  row.querySelector(".rec").addEventListener("click", function(){ record(res.id, i); });
+  row.querySelector(".clear").addEventListener("click", function(){ clearIsle(res.id, i); });
+  return row;
+}
+function buildRes(res){
+  var li = document.createElement("li");
+  li.className = "res" + (res.open ? " open" : "");
+  li.dataset.rid = res.id;
+  var trunk = document.createElement("div");
+  trunk.className = "trunk";
+  trunk.dataset.rid = res.id;
+  trunk.setAttribute("role", "button");
+  trunk.tabIndex = 0;
+  trunk.setAttribute("aria-expanded", String(res.open));
+  trunk.innerHTML =
+    '<span class="caret" aria-hidden="true">▸</span>' +
+    '<span class="res-name" title="' + esc(res.name) + '">' + esc(res.name) + '</span>' +
+    (res.cat && res.cat !== "自定义" ? '<span class="cat">' + esc(res.cat) + '</span>' : '') +
+    '<span class="per">' + labelOf(res) + '</span>' +
+    '<span class="summary"></span>' +
+    '<button class="btn del" aria-label="删除" title="删除该物质及所有岛的记录">×</button>';
+  var per = trunk.querySelector(".per");
+  if(res.kind !== "fixed"){
+    var b = bounds(res);
+    per.title = "每次记录都在这段范围里随机抽一个时刻：" + fmtMins(b[0]) + " ~ " + fmtMins(b[1]);
+  }
+  trunk.addEventListener("click", function(e){
+    if(e.target.closest("button")) return;
+    toggleRes(res.id);
+  });
+  trunk.addEventListener("keydown", function(e){
+    if(e.key === "Enter" || e.key === " "){
+      if(e.target.closest("button")) return;
+      e.preventDefault(); toggleRes(res.id);
+    }
+  });
+  trunk.querySelector(".del").addEventListener("click", function(){ delRes(res.id); });
+  li.appendChild(trunk);
+  if(res.open){
+    var wrap = document.createElement("div");
+    wrap.className = "branches";
+    for(var i = 0; i < ISLES; i++) wrap.appendChild(buildIsle(res, i));
+    li.appendChild(wrap);
+  }
+  return li;
+}
+function render(){
+  listEl.innerHTML = "";
+  var vis = visibleSorted();
+  for(var i = 0; i < vis.length; i++) listEl.appendChild(buildRes(vis[i]));
+  if(resources.length === 0){
+    emptyEl.hidden = false;
+    emptyEl.innerHTML = '还没有物质。点上面「＋ 添加物质」；<br>加好后点它的名字展开，在捡到它的那个岛点「记录刷新」。';
+  }else if(vis.length === 0){
+    emptyEl.hidden = false;
+    emptyEl.textContent = "「" + activeTab + "」里还没有物质，添加的时候分类选它就会来这里。";
+  }else{
+    emptyEl.hidden = true;
+  }
+  bannerText = "";
+  tick();
+}
+function byId(id){
+  for(var i = 0; i < resources.length; i++) if(resources[i].id === id) return resources[i];
+  return null;
+}
+function toggleRes(id){
+  var res = byId(id); if(!res) return;
+  res.open = !res.open;
+  save(); render();
+}
+function record(id, i){
+  var res = byId(id); if(!res) return;
+  var key = id + ":" + i;
+  res.starts[i] = Date.now();
+  rowState[key] = "run";
+  lastRound[key] = 0;
+  delete recentLoopAt[key];
+  save(); render();
+  unlockAudio();
+}
+function toggleIsleLoop(id, i){
+  var res = byId(id); if(!res) return;
+  if(effLoop(res, i)){
+    /* 关循环：把当前这一轮的起点冻结成锚点，时间轴从这继续走 */
+    var eff = effectiveStart(res, i, Date.now());
+    if(eff && eff.round > 0) res.starts[i] = eff.start;
+    res.loops[i] = false;
+  }else{
+    res.loops[i] = true;
+  }
+  loopCache = {}; lastRound = {}; recentLoopAt = {};
+  save(); render();
+}
+function clearIsle(id, i){
+  var res = byId(id); if(!res) return;
+  if(!confirm("清空 " + (i + 1) + "岛 的计时？")) return;
+  var key = id + ":" + i;
+  res.starts[i] = null;
+  delete rowState[key];
+  delete loopCache[key];
+  delete lastRound[key];
+  delete recentLoopAt[key];
+  save(); render();
+}
+function dropKeys(prefix){
+  [rowState, loopCache, lastRound, recentLoopAt].forEach(function(m){
+    for(var k in m) if(k.indexOf(prefix) === 0) delete m[k];
+  });
+}
+function delRes(id){
+  var res = byId(id); if(!res) return;
+  if(!confirm("删除「" + res.name + "」及它所有岛的记录？")) return;
+  resources = resources.filter(function(r){ return r.id !== id; });
+  dropKeys(id + ":");
+  save(); render();
+}
+
+/* ---------- 主循环 ---------- */
+var lastTickAt = Date.now();
+function tick(){
+  var now = Date.now();
+  var gap = now - lastTickAt;      /* 距上次刷新过去多久；很大说明App被挂起过 */
+  lastTickAt = now;
+  var dueAll = [], loopAll = [];
+  var alerts = [];   // [title, body] 只在"刚发生"那一刻提醒一次
+  var needExpand = [];
+  for(var r = 0; r < resources.length; r++){
+    var res = resources[r];
+    var dueIsles = [], recorded = 0, best = null;
+    for(var i = 0; i < ISLES; i++){
+      var key = res.id + ":" + i;
+      var looping = effLoop(res, i);
+      var eff = effectiveStart(res, i, now);
+      var st = eff ? isleStateAt(eff, now) : "idle";
+      var prev = rowState[key];
+      var label = res.name + "·" + (i + 1) + "岛";
+      var at = eff ? eff.start + eff.dur * 60000 : 0;   /* 这一轮抽中的刷出时刻 */
+      if(st !== "idle") recorded++;
+      if(st === "run"){
+        var rem = at - now;
+        if(!best || rem < best.rem) best = {isle: i, rem: rem};
+      }else if(st === "due"){ dueIsles.push(i); dueAll.push(label); }
+      if(booted && prev && prev !== st && st === "due"){
+        alerts.push(["该刷新了：" + label,
+                     "预计 " + fmtWhen(at) + " 刷出，去游戏里确认一下"]);
+        if(!res.open) needExpand.push(res.id);
+      }
+      /* 循环到点：替你把这一轮记上，马上开始下一轮（下一轮的时间重新随机抽） */
+      var lr = lastRound[key];
+      if(booted && looping && eff && lr !== undefined && eff.round > lr){
+        recentLoopAt[key] = now;
+        alerts.push(["循环自动记：" + label,
+                     "这轮到点，已自动记上、开始下一轮；下一轮预计 " +
+                     fmtWhen(eff.start + eff.dur * 60000) + " 刷"]);
+        if(!res.open) needExpand.push(res.id);
+      }
+      if(eff) lastRound[key] = eff.round; else delete lastRound[key];
+      if(recentLoopAt[key] !== undefined && now - recentLoopAt[key] > 120000) delete recentLoopAt[key];
+      if(recentLoopAt[key] !== undefined) loopAll.push(label);
+      rowState[key] = st;
+      var row = listEl.querySelector('.isle-row[data-rid="' + res.id + '"][data-isle="' + i + '"]');
+      if(row) patchIsle(row, res, i, st, now, eff);
+    }
+    var trunk = listEl.querySelector('.trunk[data-rid="' + res.id + '"]');
+    if(trunk) patchTrunk(trunk, res, dueIsles, recorded, best);
+  }
+  syncOrder();
+  if(alerts.length){
+    beep(); lastBeepAt = now;
+    for(var a = 0; a < alerts.length; a++) notify(alerts[a][0], alerts[a][1]);
+  }
+  if(needExpand.length){
+    for(var n = 0; n < needExpand.length; n++){ var rr = byId(needExpand[n]); if(rr) rr.open = true; }
+    save(); render();
+    return;
+  }
+  if(booted && dueAll.length && (lastBeepAt === 0 || Date.now() - lastBeepAt > 60000)){
+    beep(); lastBeepAt = Date.now();
+  }
+  updateBanner(dueAll, loopAll);
+  flashTitle(dueAll.length > 0);
+  if(gap > 3000){ render(); }
+}
+function patchIsle(row, res, i, st, now, eff){
+  row.classList.toggle("idle", st === "idle");
+  row.classList.toggle("run", st === "run");
+  row.classList.toggle("due", st === "due");
+  row.classList.toggle("has-rec", st !== "idle");
+  var tone = (st === "run" && eff) ? toneOf(eff.start + eff.dur * 60000 - now) : "";
+  row.classList.toggle("t-yellow", tone === "yellow");
+  row.classList.toggle("t-red", tone === "red");
+  var clock = row.querySelector(".clock"), nextEl = row.querySelector(".next"), recAt = row.querySelector(".rec-at");
+  if(st === "idle" || !eff){
+    clock.textContent = "--:--";
+    nextEl.textContent = "";
+    recAt.textContent = "";
+    recAt.title = "";
+    return;
+  }
+  var at = eff.start + eff.dur * 60000;   /* 这一轮抽中的刷出时刻 */
+  if(st === "run"){
+    clock.textContent = fmtRemain(at - now);
+    nextEl.textContent = "预计 " + fmtWhen(at) + " 刷";
+    var pct = (now - eff.start) / (eff.dur * 60000) * 100;
+    row.querySelector(".bar i").style.width = Math.min(100, Math.max(0, pct)).toFixed(1) + "%";
+  }else{
+    clock.textContent = "该刷新了";
+    nextEl.textContent = "预计 " + fmtWhen(at) + " · 已过 " + fmtOver(now - at);
+    row.querySelector(".bar i").style.width = "100%";
+  }
+  var looping = effLoop(res, i);
+  recAt.textContent = fmtShortClock(eff.start) + (looping && eff.round > 0 ? " 自动" : " 记");
+  recAt.title = looping && eff.round > 0 ? "第 " + (eff.round + 1) + " 轮（倒计时到点后自动开始的）" : "";
+}
+function patchTrunk(trunk, res, dueIsles, recorded, best){
+  var el = trunk.querySelector(".summary");
+  var text, cls = "";
+  if(dueIsles.length){
+    text = dueIsles.map(function(i){ return (i + 1) + "岛"; }).join("、") + " 该刷新了";
+    cls = "due";
+  }else if(best){
+    text = "已记 " + recorded + " 岛 · 最近 " + (best.isle + 1) + "岛 " + fmtRemain(best.rem) + " 后";
+    cls = "t-" + toneOf(best.rem);
+  }else{
+    text = "还没记录，点开选岛";
+  }
+  el.textContent = text;
+  el.className = "summary" + (cls ? " " + cls : "");
+}
+function updateBanner(dueLabels, loopLabels){
+  var parts = [];
+  if(loopLabels && loopLabels.length) parts.push("已自动记刷新：<b>" + esc(loopLabels.join("、")) + "</b>");
+  if(dueLabels.length) parts.push("该刷新了：<b>" + esc(dueLabels.join("、")) + "</b>");
+  var t = parts.join("　");
+  if(t === bannerText) return;
+  bannerText = t;
+  if(!t){ bannerEl.hidden = true; return; }
+  bannerEl.hidden = false;
+  bannerEl.innerHTML = t + "　去游戏里看一眼，回来点「记录刷新」。";
+}
+function flashTitle(anyAlert){
+  if(!anyAlert){
+    if(titleTimer){ clearInterval(titleTimer); titleTimer = null; }
+    document.title = "创魔刷新表";
+    return;
+  }
+  if(titleTimer) return;
+  titleTick = 0;
+  titleTimer = setInterval(function(){
+    titleTick++;
+    document.title = (titleTick % 2) ? "【该刷新了】创魔刷新表" : "创魔刷新表";
+  }, 1200);
+}
+
+/* ---------- 保存 ---------- */
+function showErr(msg){ addErr.textContent = msg; addErr.hidden = false; }
+function hideErr(){ addErr.hidden = true; }
+function readTime(valEl, unitName){
+  var v = parseFloat(valEl.value);
+  if(isNaN(v)) return 0;
+  return Math.round(v * UNIT_MINS[unitOf(unitName)]);
+}
+function readFluc(){
+  if(!sFluc.checked) return null;
+  var fv = parseFloat(sFlucVal.value);
+  if(isNaN(fv)) fv = 0;
+  var fu = unitOf("funit");
+  if(fu === "pct"){
+    if(fv < 1 || fv > 90) return {err: "波动百分比填 1 ~ 90 之间"};
+    return {mode: "pct", val: Math.round(fv)};
+  }
+  var amp = Math.round(fv * UNIT_MINS[fu]);
+  if(amp <= 0) return {err: "波动时间要大于 0"};
+  return {mode: "abs", val: amp};
+}
+function add(){
+  var name = sName.value.trim();
+  if(!name){ showErr("先给物质起个名字"); sName.focus(); return; }
+  var fluc = readFluc();
+  if(fluc && fluc.err){ showErr(fluc.err); sFlucVal.focus(); return; }
+  var res;
+  if(sRange.checked){
+    var early = readTime(sEarly, "eunit");
+    var late  = readTime(sLate, "lunit");
+    if(early <= 0){ showErr("最快时间要大于 0"); sEarly.focus(); return; }
+    if(late < early){ showErr("最慢时间不能比最快短"); sLate.focus(); return; }
+    res = {kind: "range", base: late, pct: 10, early: early, late: late, fluc: fluc};
+  }else{
+    var base = readTime(sTime, "unit");
+    if(base <= 0){ showErr("刷新时间要大于 0，比如 30 分钟"); sTime.focus(); return; }
+    if(fluc && fluc.mode === "pct"){
+      res = {kind: "pct", base: base, pct: fluc.val, early: base, late: base};
+    }else if(fluc){
+      res = {kind: "abs", base: base, amp: fluc.val, early: base, late: base};
+    }else{
+      res = {kind: "fixed", base: base, pct: 10, early: base, late: base};
+    }
+  }
+  hideErr();
+  res.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  res.name = name;
+  res.cat = sCat.value;
+  res.open = true;
+  res.loop = sLoop.checked;
+  res.loops = new Array(ISLES).fill(null);
+  res.starts = new Array(ISLES).fill(null);
+  resources.unshift(res);
+  save(); render();
+  closeSheet();
+  unlockAudio();
+}
+addBtn.addEventListener("click", openSheet);
+$("#saveBtn").addEventListener("click", add);
+$("#cancelBtn").addEventListener("click", closeSheet);
+sheetEl.addEventListener("keydown", function(e){
+  var t = e.target;
+  if(e.key === "Enter" && t.tagName === "INPUT" && (t.type === "number" || t.type === "text")){
+    e.preventDefault(); add();
+  }
+  if(e.key === "Escape") closeSheet();
+});
+document.addEventListener("pointerdown", function(){ unlockAudio(); }, {once: true});
+/* 回到前台/唤醒时，立即按系统时间重算（安卓WebView不一定触发visibilitychange，所以多监听几个） */
+function resumeSync(){ tick(); }
+document.addEventListener("visibilitychange", function(){ if(!document.hidden) resumeSync(); });
+window.addEventListener("focus", resumeSync);
+window.addEventListener("pageshow", resumeSync);
+window.addEventListener("online", resumeSync);
+document.addEventListener("resume", resumeSync);
+
+/* ---------- 启动 ---------- */
+load();
+updateSoundBtn();
+updateNotifyBtn();
+renderTabs();
+var now0 = Date.now();
+var alertOnLoad = false;
+for(var r = 0; r < resources.length; r++){
+  var any = false;
+  for(var i = 0; i < ISLES; i++){
+    var key0 = resources[r].id + ":" + i;
+    var eff0 = effectiveStart(resources[r], i, now0);
+    var st0 = eff0 ? isleStateAt(eff0, now0) : "idle";
+    rowState[key0] = st0;
+    if(eff0) lastRound[key0] = eff0.round; else delete lastRound[key0];
+    if(st0 === "due"){ any = true; alertOnLoad = true; }
+  }
+  if(any) resources[r].open = true;
+}
+render();
+booted = true;
+tick();
+if(alertOnLoad){
+  setTimeout(function(){ beep(); lastBeepAt = Date.now(); }, 700);
+}
+setInterval(tick, 500);
+})();
+</script>
+</body>
+</html>
